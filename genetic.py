@@ -15,6 +15,18 @@ def _generate_genes(length, gene_set, get_fitness):
     fitness = get_fitness(genes)
     return Chromosome(genes, fitness)
 
+def _get_improvement(new_child, new_parent):
+    best_parent = new_parent()
+    yield best_parent
+    while True:
+        child = new_child(best_parent)
+        if best_parent.fitness > child.fitness:
+            continue
+        if not child.fitness > best_parent.fitness:
+            best_parent = child
+            continue
+        yield child
+        best_parent = child
 
 def _mutate(parent, gene_set, get_fitness):
     index = random.randrange(0, len(parent.genes))
@@ -28,18 +40,14 @@ def _mutate(parent, gene_set, get_fitness):
 
 def get_best(get_fitness, target_len, optimal_fitness, gene_set, display):
     random.seed()
-    best_genes = _generate_genes(target_len, gene_set, get_fitness)
-    display(best_genes)
-    if not optimal_fitness > best_genes.fitness:
-        return best_genes
-    while True:
-        child = _mutate(best_genes, gene_set, get_fitness)
-        if best_genes.fitness > child.fitness:
-            continue
-        if not child.fitness > best_genes.fitness:
-            best_genes = child
-            continue
-        display(child)
-        if not optimal_fitness > child.fitness:
-            return child
-        best_genes = child
+
+    def mutate_fn(parent):
+        return _mutate(parent, gene_set, get_fitness)
+
+    def generate_parent_fn():
+        return _generate_genes(target_len, gene_set, get_fitness)
+
+    for improvement in _get_improvement(mutate_fn, generate_parent_fn):
+        display(improvement)
+        if not optimal_fitness > improvement.fitness:
+            return improvement
