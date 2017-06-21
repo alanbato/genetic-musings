@@ -44,7 +44,7 @@ def _mutate_custom(parent, custom_mutate, get_fitness):
     return Chromosome(child_genes, fitness)
 
 def get_best(get_fitness, target_len, optimal_fitness, gene_set, display,
-             custom_mutate=None):
+             custom_mutate=None, custom_create=None):
     random.seed()
     if custom_mutate is None:
         def mutate_fn(parent):
@@ -53,8 +53,13 @@ def get_best(get_fitness, target_len, optimal_fitness, gene_set, display,
         def mutate_fn(parent):
             return _mutate_custom(parent, custom_mutate, get_fitness)
 
-    def generate_parent_fn():
-        return _generate_genes(target_len, gene_set, get_fitness)
+    if custom_create is None:
+        def generate_parent_fn():
+            return _generate_genes(target_len, gene_set, get_fitness)
+    else:
+        def generate_parent_fn():
+            genes = custom_create()
+            return Chromosome(genes, get_fitness(genes))
 
     for improvement in _get_improvement(mutate_fn, generate_parent_fn):
         display(improvement)
